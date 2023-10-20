@@ -1,5 +1,7 @@
 use clap::Parser;
 
+mod util;
+
 pub struct Cli {}
 
 impl Cli {
