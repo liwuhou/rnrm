@@ -59,7 +59,9 @@ impl SubCommand {
         println!("list");
     }
     pub fn current() {
-        println!("current");
+        if let Some(registry) = util::get_current_registry() {
+            println!("{}", registry);
+        }
     }
     pub fn r#use(name: &str) {
         println!("use {}", name);
