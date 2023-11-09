@@ -59,6 +59,7 @@ pub fn get_default_registries() -> Result<Value, Box<dyn std::error::Error>> {
 
 pub fn get_registries() -> Option<HashMap<String, String>> {
     let registries = get_default_registries().ok()?;
+
     let mut registry_map: HashMap<String, String> = HashMap::new();
 
     if let Value::Object(map) = registries {
@@ -71,4 +72,11 @@ pub fn get_registries() -> Option<HashMap<String, String>> {
         }
     }
     Some(registry_map)
+}
+
+pub fn get_pretty_format(input: &str, current_registry: &str) -> String {
+    let formatted_str = format!(" {} ", input);
+    let is_current = input.cmp(current_registry);
+
+    format!("{:-<width$}", formatted_str, width = 15)
 }

@@ -3,9 +3,9 @@ use rnrm::Cli;
 mod util;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Cli::run();
+    Cli::run();
 
-    let res = util::get_registries();
+    // let res = util::get_registries();
     // println!("{:?}", res);
     Ok(())
 }

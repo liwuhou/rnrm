@@ -56,7 +56,15 @@ pub enum SubCommand {
 
 impl SubCommand {
     pub fn ls() {
-        println!("list");
+        let registries = util::get_registries().unwrap();
+        let current = util::get_current_registry().unwrap();
+        for (registry_name, registry_addr) in registries.iter() {
+            println!(
+                "{} {}",
+                &util::get_pretty_format(registry_name, &current),
+                registry_addr.replace('"', "")
+            )
+        }
     }
     pub fn current() {
         if let Some(registry) = util::get_current_registry() {
