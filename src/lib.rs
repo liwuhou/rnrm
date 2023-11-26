@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 
 mod util;
 
@@ -55,16 +56,18 @@ pub enum SubCommand {
 }
 
 impl SubCommand {
-    pub fn ls() {
-        let registries = util::get_registries().unwrap();
-        let current = util::get_current_registry().unwrap();
+    pub fn ls() -> Option<()> {
+        let registries = util::get_registries()?;
+        let current = util::get_current_registry()?;
         for (registry_name, registry_addr) in registries.iter() {
+            let addr = registry_addr.replace('"', "");
             println!(
                 "{} {}",
-                &util::get_pretty_format(registry_name, &current),
+                &util::get_pretty_format(registry_name, current == addr),
                 registry_addr.replace('"', "")
             )
         }
+        Some(())
     }
     pub fn current() {
         if let Some(registry) = util::get_current_registry() {
