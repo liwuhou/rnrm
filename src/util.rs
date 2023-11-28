@@ -18,26 +18,27 @@ pub fn get_npmrc_path() -> Option<String> {
 pub fn get_nrmrc_path() -> Option<String> {
     Some(format!("{}/{}", dirs::home_dir()?.display(), NRMRC))
 }
-pub fn getConfigForRcfile(rc_content: &str) -> Option<String> {
-    let res: Option<String> = None;
-    for line in rc_content.lines() {
-        println!("{}", line);
+fn extract_registry(line: &str) -> Option<String> {
+    let line = line.trim();
+    if line.is_empty() {
+        return None;
     }
-    res
+
+    match line.split_once('=') {
+        Some((key, value)) if key.trim().eq(REGISTRY) => Some(String::from(value.trim())),
+        _ => None,
+    }
 }
 
 pub fn get_current_registry() -> Option<String> {
     let file = get_npmrc_path()?;
     let reader = BufReader::new(File::open(file).ok()?);
 
-    reader.lines().filter_map(Result::ok).find_map(|line| {
-        let (key, value) = line.split_once('=')?;
-        if key == REGISTRY {
-            Some(value.to_string())
-        } else {
-            None
-        }
-    })
+    // TODO: extract
+    reader
+        .lines()
+        .filter_map(Result::ok)
+        .find_map(|line| extract_registry(&line))
 }
 
 fn extract_nrmrc_registry(lines: &mut Lines<BufReader<File>>) -> Option<(String, String)> {
@@ -51,12 +52,9 @@ fn extract_nrmrc_registry(lines: &mut Lines<BufReader<File>>) -> Option<(String,
             if let Some(name) = captures.get(1) {
                 registry_name = Some(name.as_str().to_owned());
             }
-        } else if let Some((key, addr)) = line.split_once("=") {
-            // We find it, so break loop
-            if key == REGISTRY {
-                registry_addr = Some(addr.to_owned());
-                break;
-            }
+        } else if let Some(addr) = extract_registry(&line) {
+            registry_addr = Some(addr.to_owned());
+            break;
         }
     }
 
