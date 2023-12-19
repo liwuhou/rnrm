@@ -309,6 +309,7 @@ dependencies = [
  "clap",
  "colored",
  "dirs",
+ "lazy_static",
  "regex",
  "serde_json",
 ]

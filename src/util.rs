@@ -7,16 +7,20 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Lines};
+use std::sync::OnceLock;
 
-pub const NPMRC: &str = ".npmrc";
-pub const NRMRC: &str = ".nrmrc";
-pub const REGISTRY: &str = "registry";
+// CONFIG
+const NPMRC_NAME: &str = ".npmrc";
+const NRMRC_NAME: &str = ".nrmrc";
+const REGISTRY: &str = "registry";
+static NPMRC_PATH: OnceLock<String> = OnceLock::new();
+static NRMRC_PATH: OnceLock<String> = OnceLock::new();
 
-pub fn get_npmrc_path() -> Option<String> {
-    Some(format!("{}/{}", dirs::home_dir()?.display(), NPMRC))
+pub fn get_npmrc_path() -> &'static str {
+    NPMRC_PATH.get_or_init(|| format!("{}/{}", dirs::home_dir().unwrap().display(), NPMRC_NAME))
 }
-pub fn get_nrmrc_path() -> Option<String> {
-    Some(format!("{}/{}", dirs::home_dir()?.display(), NRMRC))
+pub fn get_nrmrc_path() -> &'static str {
+    NRMRC_PATH.get_or_init(|| format!("{}/{}", dirs::home_dir().unwrap().display(), NRMRC_NAME))
 }
 fn extract_registry(line: &str) -> Option<String> {
     let line = line.trim();
@@ -31,7 +35,7 @@ fn extract_registry(line: &str) -> Option<String> {
 }
 
 pub fn get_current_registry() -> Option<String> {
-    let file = get_npmrc_path()?;
+    let file = get_npmrc_path();
     let reader = BufReader::new(File::open(file).ok()?);
 
     // TODO: extract
@@ -62,7 +66,7 @@ fn extract_nrmrc_registry(lines: &mut Lines<BufReader<File>>) -> Option<(String,
 }
 
 pub fn get_nrm_registries() -> Option<HashMap<String, String>> {
-    let file = get_nrmrc_path()?;
+    let file = get_nrmrc_path();
     let reader = BufReader::new(File::open(file).ok()?);
 
     let mut result: HashMap<String, String> = HashMap::new();
