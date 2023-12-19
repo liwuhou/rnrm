@@ -3,6 +3,7 @@ extern crate dirs;
 use colored::*;
 use regex::Regex;
 use serde_json::{from_reader, Value};
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -91,11 +92,11 @@ pub fn get_default_registries() -> Result<Value, Box<dyn std::error::Error>> {
     Ok(from_reader(BufReader::new(file))?)
 }
 
-pub fn get_registries() -> Option<HashMap<String, String>> {
+pub fn get_registries() -> Option<BTreeMap<String, String>> {
     let registries = get_default_registries().ok()?;
     let custom_registries = get_nrm_registries();
 
-    let mut registry_map: HashMap<String, String> = HashMap::new();
+    let mut registry_map: BTreeMap<String, String> = BTreeMap::new();
 
     if let Value::Object(map) = registries {
         for (registry_name, value) in map {
