@@ -18,6 +18,11 @@ const REGISTRY: &str = "registry";
 static NPMRC_PATH: OnceLock<String> = OnceLock::new();
 static NRMRC_PATH: OnceLock<String> = OnceLock::new();
 
+pub enum State {
+    Success,
+    Error,
+}
+
 pub fn get_npmrc_path() -> &'static str {
     NPMRC_PATH.get_or_init(|| format!("{}/{}", dirs::home_dir().unwrap().display(), NPMRC_NAME))
 }
@@ -135,6 +140,17 @@ pub fn find_registry_name(registry: &str) -> Option<String> {
         Some(key.clone())
     } else {
         None
+    }
+}
+
+pub fn print_heading(state: State) {
+    match state {
+        State::Success => {
+            print!("{} ", String::from(" SUCCESS ").black().on_green());
+        }
+        State::Error => {
+            print!("{} ", String::from(" ERROR ").white().on_red());
+        }
     }
 }
 

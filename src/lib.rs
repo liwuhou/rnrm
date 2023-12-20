@@ -79,8 +79,18 @@ impl SubCommand {
             );
         }
     }
-    pub fn r#use(name: &str) {
-        println!("use {}", name);
+    pub fn r#use(registry_name: &str) {
+        let registries = util::get_registries().unwrap_or_default();
+        if let Some(registry) = registries.get(registry_name) {
+            util::print_heading(util::State::Success);
+            println!("Found the registry: {}: {}", registry_name, registry);
+        } else {
+            util::print_heading(util::State::Error);
+            println!(
+                "{}",
+                format!("The registry '{}' is not found.", registry_name).red()
+            );
+        }
     }
     pub fn add(name: &str, url: &str) {
         println!("add {} {}", name, url);
