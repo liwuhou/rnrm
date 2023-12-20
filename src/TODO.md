@@ -1,9 +1,9 @@
 # 待实现的方法
 
 -   [x] help
--   [ ] ls
+-   [x] ls
+-   [x] current
 -   [ ] use
--   [ ] current
 -   [ ] add
 -   [ ] del
 -   [ ] rename

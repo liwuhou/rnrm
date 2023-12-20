@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 extern crate dirs;
 
 use colored::*;
@@ -82,7 +83,8 @@ pub fn get_nrm_registries() -> Option<HashMap<String, String>> {
 
 pub fn find_npmrc_config() {
     let argv: Vec<String> = env::args().collect();
-    let excuting_dir = argv.get(0).unwrap_or(&String::from("~"));
+    let _excuting_dir = argv.get(0).unwrap_or(&String::from("~"));
+    todo!()
 }
 
 pub fn get_default_registries() -> Result<Value, Box<dyn std::error::Error>> {
@@ -124,6 +126,16 @@ pub fn get_pretty_format(input: &str, is_current_registry: bool) -> String {
     }
 
     format!("{:-<width$}", formatted_str, width = 18)
+}
+
+pub fn find_registry_name(registry: &str) -> Option<String> {
+    let registries = get_registries().unwrap_or_default();
+
+    if let Some((key, _)) = registries.iter().find(|(_, ref value)| value == &registry) {
+        Some(key.clone())
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]

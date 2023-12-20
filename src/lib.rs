@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 
 mod util;
 
@@ -68,8 +69,14 @@ impl SubCommand {
         }
     }
     pub fn current() {
-        if let Some(registry) = util::get_current_registry() {
-            println!("{}", registry);
+        let current_registry = util::get_current_registry().unwrap();
+
+        if let Some(registry_name) = util::find_registry_name(&current_registry) {
+            println!(
+                "You are using {} registry: {}",
+                registry_name.green(),
+                current_registry.yellow()
+            );
         }
     }
     pub fn r#use(name: &str) {
