@@ -3,13 +3,15 @@ extern crate dirs;
 
 use colored::*;
 use regex::Regex;
-use serde_json::{from_reader, Value};
+use registries::get_default_registries;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Lines};
+use std::io::{BufRead, BufReader, Error as IoError, Lines, Write};
 use std::sync::OnceLock;
+
+mod registries;
 
 // CONFIG
 const NPMRC_NAME: &str = ".npmrc";
@@ -21,6 +23,7 @@ static NRMRC_PATH: OnceLock<String> = OnceLock::new();
 pub enum State {
     Success,
     Error,
+    Info,
 }
 
 pub fn get_npmrc_path() -> &'static str {
@@ -45,7 +48,6 @@ pub fn get_current_registry() -> Option<String> {
     let file = get_npmrc_path();
     let reader = BufReader::new(File::open(file).ok()?);
 
-    // TODO: extract
     reader
         .lines()
         .filter_map(Result::ok)
@@ -92,33 +94,14 @@ pub fn find_npmrc_config() {
     todo!()
 }
 
-pub fn get_default_registries() -> Result<Value, Box<dyn std::error::Error>> {
-    let current_directory = env::current_dir()?;
-    let file = File::open(current_directory.join("src/registries.json"))?;
-
-    Ok(from_reader(BufReader::new(file))?)
-}
-
 pub fn get_registries() -> Option<BTreeMap<String, String>> {
-    let registries = get_default_registries().ok()?;
-    let custom_registries = get_nrm_registries();
+    let default_registries = get_default_registries().clone();
+    let custom_registries = get_nrm_registries().unwrap_or_default();
 
     let mut registry_map: BTreeMap<String, String> = BTreeMap::new();
+    registry_map.extend(default_registries.into_iter());
+    registry_map.extend(custom_registries.into_iter());
 
-    if let Value::Object(map) = registries {
-        for (registry_name, value) in map {
-            if let Some(value) = value.get(REGISTRY) {
-                if value.is_string() {
-                    registry_map.insert(registry_name, value.to_string());
-                }
-            }
-        }
-    }
-    if let Some(map) = custom_registries {
-        for (registry_name, value) in map {
-            registry_map.insert(registry_name, value);
-        }
-    }
     Some(registry_map)
 }
 
@@ -133,14 +116,52 @@ pub fn get_pretty_format(input: &str, is_current_registry: bool) -> String {
     format!("{:-<width$}", formatted_str, width = 18)
 }
 
+fn unpack_quote(input: &str) -> String {
+    let input = input.trim();
+
+    if input.starts_with('"') && input.ends_with('"') {
+        input[1..input.len() - 1].to_owned()
+    } else {
+        input.to_owned()
+    }
+}
+
 pub fn find_registry_name(registry: &str) -> Option<String> {
     let registries = get_registries().unwrap_or_default();
 
-    if let Some((key, _)) = registries.iter().find(|(_, ref value)| value == &registry) {
+    if let Some((key, _)) = registries
+        .iter()
+        .find(|(_, value)| unpack_quote(*value) == unpack_quote(registry))
+    {
         Some(key.clone())
     } else {
         None
     }
+}
+
+pub fn use_registry(registry: &str) -> Result<(), IoError> {
+    let file = get_npmrc_path();
+    let reader = BufReader::new(File::open(file)?);
+    let mut file_vec = vec![];
+
+    // read
+    for line in reader.lines() {
+        if let Ok(line) = line {
+            if line.starts_with("registry=") {
+                file_vec.push(format!("registry={}", registry));
+            } else {
+                file_vec.push(line);
+            }
+        }
+    }
+
+    // write
+    let mut output = File::create(file)?;
+    for line in file_vec.iter() {
+        writeln!(output, "{}", line)?;
+    }
+
+    Ok(())
 }
 
 pub fn print_heading(state: State) {
@@ -150,6 +171,9 @@ pub fn print_heading(state: State) {
         }
         State::Error => {
             print!("{} ", String::from(" ERROR ").white().on_red());
+        }
+        State::Info => {
+            print!("{} ", String::from(" INFO ").white().on_blue());
         }
     }
 }

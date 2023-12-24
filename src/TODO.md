@@ -3,7 +3,7 @@
 -   [x] help
 -   [x] ls
 -   [x] current
--   [ ] use
+-   [x] use
 -   [ ] add
 -   [ ] del
 -   [ ] rename

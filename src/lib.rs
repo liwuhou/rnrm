@@ -11,7 +11,7 @@ impl Cli {
 
         match opts.subcmd {
             SubCommand::Use(args) => {
-                SubCommand::r#use(&args.name);
+                SubCommand::r#use(&args.name).unwrap();
             }
             SubCommand::Ls => {
                 SubCommand::ls();
@@ -77,11 +77,14 @@ impl SubCommand {
                 registry_name.green(),
                 current_registry.yellow()
             );
+        } else {
+            println!("Nothing");
         }
     }
-    pub fn r#use(registry_name: &str) {
+    pub fn r#use(registry_name: &str) -> Result<(), std::io::Error> {
         let registries = util::get_registries().unwrap_or_default();
         if let Some(registry) = registries.get(registry_name) {
+            util::use_registry(registry)?;
             util::print_heading(util::State::Success);
             println!("Found the registry: {}: {}", registry_name, registry);
         } else {
@@ -91,6 +94,7 @@ impl SubCommand {
                 format!("The registry '{}' is not found.", registry_name).red()
             );
         }
+        Ok(())
     }
     pub fn add(name: &str, url: &str) {
         println!("add {} {}", name, url);
