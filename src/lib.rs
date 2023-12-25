@@ -97,7 +97,13 @@ impl SubCommand {
         Ok(())
     }
     pub fn add(name: &str, url: &str) {
-        println!("add {} {}", name, url);
+        if !util::add_registry_config(name, url) {
+            util::print_heading(util::State::Error);
+            println!(
+                "{}",
+                "The registry name or url is already in the rnrm registry!"
+            );
+        }
     }
     pub fn del(name: &str) {
         println!("del {}", name);

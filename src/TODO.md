@@ -5,6 +5,7 @@
 -   [x] current
 -   [x] use
 -   [ ] add
+-   [ ] set
 -   [ ] del
 -   [ ] rename
 

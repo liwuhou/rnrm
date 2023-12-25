@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Error as IoError, Lines, Write};
 use std::sync::OnceLock;
 
@@ -103,6 +104,42 @@ pub fn get_registries() -> Option<BTreeMap<String, String>> {
     registry_map.extend(custom_registries.into_iter());
 
     Some(registry_map)
+}
+
+pub fn add_registry_config(name: &str, url: &str) -> bool {
+    let mut registries = get_registries().unwrap_or_default();
+
+    let is_invalid = registries
+        .iter()
+        .any(|(_name, _url)| name == _name || _url == url);
+
+    if is_invalid {
+        return false;
+    }
+
+    registries.insert(name.to_string(), url.to_string());
+
+    // write
+    let file = get_nrmrc_path();
+    let output = OpenOptions::new().append(true).open(file);
+    if let Ok(mut output) = output {
+        output.write_all(b"\n").unwrap();
+        output.write_all(format!("[{}]", name).as_bytes()).unwrap();
+        output.write_all(b"\n").unwrap();
+        output
+            .write_all(format!("registry={}", url).as_bytes())
+            .unwrap();
+    }
+
+    true
+}
+
+pub fn check_registry_valid(name: &str, url: &str) -> bool {
+    let registries = get_registries().unwrap_or_default();
+
+    !registries
+        .iter()
+        .any(|(_name, _url)| name == _name || _url == url)
 }
 
 pub fn get_pretty_format(input: &str, is_current_registry: bool) -> String {
