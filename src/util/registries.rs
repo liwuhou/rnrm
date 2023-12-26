@@ -6,11 +6,11 @@ pub struct RegistryInfo {
     pub registry: &'static str,
 }
 
-pub static DEFAULT_REGISTRIES: OnceLock<HashMap<String, String>> = OnceLock::new();
-pub static DEFAULT_REGISTRIES_INFO: OnceLock<HashMap<String, RegistryInfo>> = OnceLock::new();
+pub static INTERNAL_REGISTRIES: OnceLock<HashMap<String, String>> = OnceLock::new();
+pub static INTERNAL_REGISTRIES_INFO: OnceLock<HashMap<String, RegistryInfo>> = OnceLock::new();
 
-pub fn get_default_registries_info() -> &'static HashMap<String, RegistryInfo> {
-    DEFAULT_REGISTRIES_INFO.get_or_init(|| {
+pub fn get_internal_registries_info() -> &'static HashMap<String, RegistryInfo> {
+    INTERNAL_REGISTRIES_INFO.get_or_init(|| {
         let mut registries: HashMap<String, RegistryInfo> = HashMap::new();
         // Default registries config here
         registries.insert(
@@ -59,9 +59,9 @@ pub fn get_default_registries_info() -> &'static HashMap<String, RegistryInfo> {
     })
 }
 
-pub fn get_default_registries() -> &'static HashMap<String, String> {
-    DEFAULT_REGISTRIES.get_or_init(|| {
-        get_default_registries_info()
+pub fn get_internal_registries() -> &'static HashMap<String, String> {
+    INTERNAL_REGISTRIES.get_or_init(|| {
+        get_internal_registries_info()
             .iter()
             .map(
                 |(

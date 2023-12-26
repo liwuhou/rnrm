@@ -3,7 +3,7 @@ extern crate dirs;
 
 use colored::*;
 use regex::Regex;
-use registries::get_default_registries;
+pub use registries::get_internal_registries;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
@@ -46,7 +46,7 @@ fn extract_registry(line: &str) -> Option<String> {
     }
 }
 
-pub fn get_current_registry() -> Option<String> {
+pub fn get_current_registry() -> Option<(String, String)> {
     let file = get_npmrc_path();
     let reader = BufReader::new(File::open(file).ok()?);
 
@@ -54,6 +54,13 @@ pub fn get_current_registry() -> Option<String> {
         .lines()
         .filter_map(Result::ok)
         .find_map(|line| extract_registry(&line))
+        .map(|registry_url| {
+            if let Some(registry_name) = find_registry_name(&registry_url) {
+                (registry_name, registry_url)
+            } else {
+                ("UNKNOWN".to_owned(), registry_url)
+            }
+        })
 }
 
 fn extract_nrmrc_registry(lines: &mut Lines<BufReader<File>>) -> Option<(String, String)> {
@@ -97,7 +104,7 @@ pub fn find_npmrc_config() {
 }
 
 pub fn get_registries() -> Option<BTreeMap<String, String>> {
-    let default_registries = get_default_registries().clone();
+    let default_registries = get_internal_registries().clone();
     let custom_registries = get_nrm_registries().unwrap_or_default();
 
     let mut registry_map: BTreeMap<String, String> = BTreeMap::new();
@@ -227,16 +234,5 @@ pub fn print_heading(state: State) {
         State::Info => {
             print!("{} ", String::from(" INFO ").white().on_blue());
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    pub fn test_current_registry() {
-        let current_registry_address = get_current_registry().unwrap();
-        assert_eq!(current_registry_address, "https://registry.npmjs.org/")
     }
 }

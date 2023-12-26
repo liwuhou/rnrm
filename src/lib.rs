@@ -63,7 +63,7 @@ pub enum SubCommand {
 impl SubCommand {
     pub fn ls() {
         let registries = util::get_registries().unwrap_or_default();
-        let current = util::get_current_registry().unwrap_or_default();
+        let (_, current) = util::get_current_registry().unwrap_or_default();
         for (registry_name, registry_addr) in registries.iter() {
             let addr = registry_addr.replace('"', "");
             println!(
@@ -74,9 +74,7 @@ impl SubCommand {
         }
     }
     pub fn current() {
-        let current_registry = util::get_current_registry().unwrap();
-
-        if let Some(registry_name) = util::find_registry_name(&current_registry) {
+        if let Some((registry_name, current_registry)) = util::get_current_registry() {
             println!(
                 "You are using {} registry: {}",
                 registry_name.green(),
@@ -116,26 +114,29 @@ impl SubCommand {
             }
         }
     }
-    pub fn set(name: &str, url: &str) {
+    pub fn set(_name: &str, _url: &str) {
         todo!();
     }
     pub fn del(name: &str) {
-        let is_current_registry =
-            util::get_current_registry().map(|current_registry| current_registry == name);
+        let internal_registries = util::get_internal_registries();
+        if internal_registries.contains_key(name) {
+            util::print_heading(util::State::Error);
+            println!("Cannot delete the rnrm internal registry.");
+            return;
+        }
+        let is_del_current_registry =
+            util::get_current_registry().map(|(current_name, _)| current_name == name);
 
         match util::delete_registry(name) {
             Ok(_) => {
                 util::print_heading(util::State::Success);
                 println!("Delete registry {name} success.");
-                if let Some(is_deleted_current_registry) = is_current_registry {
-                    if is_deleted_current_registry {
-                        SubCommand::r#use("npm").unwrap();
-                    }
+                if let Some(true) = is_del_current_registry {
+                    SubCommand::r#use("npm").unwrap();
                 }
             }
             Err(_) => {}
         }
-        println!("del {}", name);
     }
     pub fn rename(old_name: &str, new_name: &str) {
         println!("rename {} {}", old_name, new_name);
