@@ -22,6 +22,9 @@ impl Cli {
             SubCommand::Add(args) => {
                 SubCommand::add(&args.name, &args.url);
             }
+            SubCommand::Set(args) => {
+                SubCommand::set(&args.name, &args.url);
+            }
             SubCommand::Del(args) => {
                 SubCommand::del(&args.name);
             }
@@ -49,6 +52,8 @@ pub enum SubCommand {
     Use(Use),
     /// Add a custom registry
     Add(Add),
+    /// Add or modify a custom registry
+    Set(Add),
     /// Delete a custom registry
     Del(Del),
     /// Change custom registry's name
@@ -86,7 +91,7 @@ impl SubCommand {
         if let Some(registry) = registries.get(registry_name) {
             util::use_registry(registry)?;
             util::print_heading(util::State::Success);
-            println!("Found the registry: {}: {}", registry_name, registry);
+            println!("The registry has been changed to '{}'", registry_name);
         } else {
             util::print_heading(util::State::Error);
             println!(
@@ -97,15 +102,39 @@ impl SubCommand {
         Ok(())
     }
     pub fn add(name: &str, url: &str) {
-        if !util::add_registry_config(name, url) {
-            util::print_heading(util::State::Error);
-            println!(
-                "{}",
-                "The registry name or url is already in the rnrm registry!"
-            );
+        match util::add_registry_config(name, url) {
+            Err(_) => {
+                util::print_heading(util::State::Error);
+                println!("The registry name or url is already in the rnrm registry!");
+            }
+            Ok(_) => {
+                util::print_heading(util::State::Success);
+                println!(
+                    "Add registry {name} success, run {} command to use {name} registry.",
+                    format!("rnrm use {name}").green()
+                )
+            }
         }
     }
+    pub fn set(name: &str, url: &str) {
+        todo!();
+    }
     pub fn del(name: &str) {
+        let is_current_registry =
+            util::get_current_registry().map(|current_registry| current_registry == name);
+
+        match util::delete_registry(name) {
+            Ok(_) => {
+                util::print_heading(util::State::Success);
+                println!("Delete registry {name} success.");
+                if let Some(is_deleted_current_registry) = is_current_registry {
+                    if is_deleted_current_registry {
+                        SubCommand::r#use("npm").unwrap();
+                    }
+                }
+            }
+            Err(_) => {}
+        }
         println!("del {}", name);
     }
     pub fn rename(old_name: &str, new_name: &str) {

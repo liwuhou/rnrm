@@ -7,6 +7,7 @@ use registries::get_default_registries;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::env;
+use std::error::Error;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Error as IoError, Lines, Write};
@@ -106,7 +107,7 @@ pub fn get_registries() -> Option<BTreeMap<String, String>> {
     Some(registry_map)
 }
 
-pub fn add_registry_config(name: &str, url: &str) -> bool {
+pub fn add_registry_config(name: &str, url: &str) -> Result<(), Box<dyn Error>> {
     let mut registries = get_registries().unwrap_or_default();
 
     let is_invalid = registries
@@ -114,7 +115,7 @@ pub fn add_registry_config(name: &str, url: &str) -> bool {
         .any(|(_name, _url)| name == _name || _url == url);
 
     if is_invalid {
-        return false;
+        return Err("Duplicated registry or url.".into());
     }
 
     registries.insert(name.to_string(), url.to_string());
@@ -123,15 +124,29 @@ pub fn add_registry_config(name: &str, url: &str) -> bool {
     let file = get_nrmrc_path();
     let output = OpenOptions::new().append(true).open(file);
     if let Ok(mut output) = output {
-        output.write_all(b"\n").unwrap();
-        output.write_all(format!("[{}]", name).as_bytes()).unwrap();
-        output.write_all(b"\n").unwrap();
-        output
-            .write_all(format!("registry={}", url).as_bytes())
-            .unwrap();
+        let insert_text = format!("\n[{}]\nregistry={}", name, url);
+        output.write_all(insert_text.as_bytes())?;
     }
 
-    true
+    Ok(())
+}
+
+pub fn delete_registry(name: &str) -> Result<(), Box<dyn Error>> {
+    let mut registries = get_nrm_registries().unwrap_or_default();
+
+    if let None = registries.remove(name) {
+        return Err("Not found the registry.".into());
+    } else {
+        // rewrite
+        let file = get_nrmrc_path();
+        let mut output = File::create(file)?;
+        for (registry_name, registry_url) in registries.iter() {
+            writeln!(output, "[{}]", registry_name)?;
+            writeln!(output, "registry={}\n", registry_url)?;
+        }
+    }
+
+    Ok(())
 }
 
 pub fn check_registry_valid(name: &str, url: &str) -> bool {
