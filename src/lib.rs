@@ -103,11 +103,12 @@ impl SubCommand {
         match util::add_registry_config(name, url) {
             Err(_) => {
                 util::print_heading(util::State::Error);
-                println!("The registry name or url is already in the rnrm registry!");
+                println!("The registry name or url is already in the rnrm registries!");
             }
             Ok(_) => {
                 util::print_heading(util::State::Success);
                 println!(
+                    // TODO: prompt
                     "Add registry {name} success, run {} command to use {name} registry.",
                     format!("rnrm use {name}").green()
                 )
@@ -118,28 +119,38 @@ impl SubCommand {
         todo!();
     }
     pub fn del(name: &str) {
-        let internal_registries = util::get_internal_registries();
-        if internal_registries.contains_key(name) {
-            util::print_heading(util::State::Error);
-            println!("Cannot delete the rnrm internal registry.");
-            return;
-        }
         let is_del_current_registry =
             util::get_current_registry().map(|(current_name, _)| current_name == name);
 
         match util::delete_registry(name) {
             Ok(_) => {
                 util::print_heading(util::State::Success);
-                println!("Delete registry {name} success.");
+                println!("Delete registry {} success.", name);
                 if let Some(true) = is_del_current_registry {
+                    // TODO: prompt
                     SubCommand::r#use("npm").unwrap();
                 }
             }
-            Err(_) => {}
+            Err(err) => {
+                if let Some(err) = err.downcast_ref::<util::CustomError>() {
+                    util::handle_custom_error(err);
+                } else {
+                    // FIXME: Handler errors
+                }
+            }
         }
     }
     pub fn rename(old_name: &str, new_name: &str) {
-        println!("rename {} {}", old_name, new_name);
+        match util::rename_registry(old_name, new_name) {
+            Ok(_) => {}
+            Err(err) => {
+                if let Some(err) = err.downcast_ref::<util::CustomError>() {
+                    util::handle_custom_error(err);
+                } else {
+                    // FIXME: Handler errors
+                }
+            }
+        }
     }
 }
 

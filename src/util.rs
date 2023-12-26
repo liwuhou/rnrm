@@ -2,6 +2,7 @@
 extern crate dirs;
 
 use colored::*;
+pub use error::CustomError;
 use regex::Regex;
 pub use registries::get_internal_registries;
 use std::collections::BTreeMap;
@@ -13,6 +14,7 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Error as IoError, Lines, Write};
 use std::sync::OnceLock;
 
+mod error;
 mod registries;
 
 // CONFIG
@@ -138,7 +140,33 @@ pub fn add_registry_config(name: &str, url: &str) -> Result<(), Box<dyn Error>> 
     Ok(())
 }
 
+pub fn is_internal_registry(registry_name: &str) -> bool {
+    let internal_registries = get_internal_registries();
+
+    internal_registries.contains_key(registry_name)
+}
+
+fn operate_internal_registry_and_throw(
+    registry_name: &str,
+    message: String,
+) -> Result<(), CustomError> {
+    if is_internal_registry(registry_name) {
+        Err(CustomError { message })
+    } else {
+        Ok(())
+    }
+}
+
+pub fn handle_custom_error(err: &CustomError) {
+    print_heading(State::Error);
+    println!("{}", err.message);
+}
+
 pub fn delete_registry(name: &str) -> Result<(), Box<dyn Error>> {
+    operate_internal_registry_and_throw(
+        name,
+        "Cannot delete the rnrm internal registry.".to_string(),
+    )?;
     let mut registries = get_nrm_registries().unwrap_or_default();
 
     if let None = registries.remove(name) {
@@ -153,6 +181,17 @@ pub fn delete_registry(name: &str) -> Result<(), Box<dyn Error>> {
         }
     }
 
+    Ok(())
+}
+
+pub fn rename_registry(old_name: &str, new_name: &str) -> Result<(), Box<dyn Error>> {
+    operate_internal_registry_and_throw(
+        old_name,
+        "Cannot modify the rnrm internal registry.".into(),
+    )?;
+    let mut registries = get_nrm_registries().unwrap_or_default();
+
+    // if let None = registries.remove(old_name)
     Ok(())
 }
 
