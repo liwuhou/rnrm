@@ -11,6 +11,7 @@ use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::io;
 use std::io::{BufRead, BufReader, Error as IoError, Lines, Write};
 use std::sync::OnceLock;
 
@@ -151,7 +152,7 @@ fn operate_internal_registry_and_throw(
     message: String,
 ) -> Result<(), CustomError> {
     if is_internal_registry(registry_name) {
-        Err(CustomError { message })
+        Err(CustomError::new(message))
     } else {
         Ok(())
     }
@@ -170,17 +171,25 @@ pub fn delete_registry(name: &str) -> Result<(), Box<dyn Error>> {
     let mut registries = get_nrm_registries().unwrap_or_default();
 
     if let None = registries.remove(name) {
-        return Err("Not found the registry.".into());
+        return Err(Box::new(CustomError::new(format!(
+            "The registry '{}' is not existed.",
+            name
+        ))));
     } else {
         // rewrite
-        let file = get_nrmrc_path();
-        let mut output = File::create(file)?;
-        for (registry_name, registry_url) in registries.iter() {
-            writeln!(output, "[{}]", registry_name)?;
-            writeln!(output, "registry={}\n", registry_url)?;
-        }
+        rewrite_nrmrc_file(&registries)?;
     }
 
+    Ok(())
+}
+
+fn rewrite_nrmrc_file(registries: &HashMap<String, String>) -> Result<(), io::Error> {
+    let file = get_nrmrc_path();
+    let mut output = File::create(file)?;
+    for (registry_name, registry_url) in registries {
+        writeln!(output, "[{}]", registry_name)?;
+        writeln!(output, "registry={}\n", registry_url)?;
+    }
     Ok(())
 }
 
@@ -191,7 +200,16 @@ pub fn rename_registry(old_name: &str, new_name: &str) -> Result<(), Box<dyn Err
     )?;
     let mut registries = get_nrm_registries().unwrap_or_default();
 
-    // if let None = registries.remove(old_name)
+    let removed_item = registries.remove(old_name);
+    if let None = removed_item {
+        return Err(Box::new(CustomError::new(format!(
+            "The registry '{}' is not existed.",
+            old_name
+        ))));
+    } else if let Some(registry_url) = removed_item {
+        registries.insert(new_name.to_string(), registry_url);
+        rewrite_nrmrc_file(&registries)?;
+    }
     Ok(())
 }
 

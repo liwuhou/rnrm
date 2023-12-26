@@ -116,7 +116,8 @@ impl SubCommand {
         }
     }
     pub fn set(_name: &str, _url: &str) {
-        todo!();
+        util::print_heading(util::State::Info);
+        println!("Coming soon...");
     }
     pub fn del(name: &str) {
         let is_del_current_registry =
@@ -142,7 +143,13 @@ impl SubCommand {
     }
     pub fn rename(old_name: &str, new_name: &str) {
         match util::rename_registry(old_name, new_name) {
-            Ok(_) => {}
+            Ok(_) => {
+                util::print_heading(util::State::Success);
+                println!(
+                    "The registry '{}' has been renamed to '{}'",
+                    old_name, new_name
+                );
+            }
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<util::CustomError>() {
                     util::handle_custom_error(err);

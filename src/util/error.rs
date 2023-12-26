@@ -6,6 +6,12 @@ pub struct CustomError {
     pub message: String,
 }
 
+impl CustomError {
+    pub fn new(message: String) -> Self {
+        CustomError { message }
+    }
+}
+
 impl Display for CustomError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{}", self.message)
