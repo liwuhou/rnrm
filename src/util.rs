@@ -132,11 +132,10 @@ pub fn add_registry_config(name: &str, url: &str) -> Result<(), Box<dyn Error>> 
 
     // write
     let file = get_nrmrc_path();
-    let output = OpenOptions::new().append(true).open(file);
-    if let Ok(mut output) = output {
-        let insert_text = format!("\n[{}]\nregistry={}", name, url);
-        output.write_all(insert_text.as_bytes())?;
-    }
+    println!("{}", file);
+    let mut output = OpenOptions::new().append(true).create(true).open(file)?;
+    let insert_text = format!("\n[{}]\nregistry={}", name, url);
+    output.write_all(insert_text.as_bytes())?;
 
     Ok(())
 }
