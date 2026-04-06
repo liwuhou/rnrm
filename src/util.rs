@@ -256,18 +256,25 @@ pub fn find_registry_name(registry: &str) -> Option<String> {
 
 pub fn use_registry(registry: &str) -> Result<(), IoError> {
     let file = get_npmrc_path();
-    let reader = BufReader::new(File::open(file)?);
     let mut file_vec = vec![];
 
     // read
-    for line in reader.lines() {
-        if let Ok(line) = line {
-            if line.starts_with("registry=") {
-                file_vec.push(format!("registry={}", registry));
-            } else {
-                file_vec.push(line);
+    if let Ok(reader) = File::open(file) {
+        let reader = BufReader::new(reader);
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                if line.starts_with("registry=") {
+                    file_vec.push(format!("registry={}", registry));
+                } else {
+                    file_vec.push(line);
+                }
             }
         }
+    }
+
+    // If file was empty or didn't exist, add the registry line
+    if file_vec.is_empty() {
+        file_vec.push(format!("registry={}", registry));
     }
 
     // write
