@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: rnrm
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: rnrm
+          - os: macos-12
+            target: x86_64-apple-darwin
+            artifact_name: rnrm
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: rnrm
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: rnrm.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl-tools (for musl target)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/
+          else
+            cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rnrm-${{ matrix.target }}
+          path: release/${{ matrix.artifact_name }}
+          retention-days: 7
+
+  create-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rnrm-*
+          merge-multiple: false
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          for dir in rnrm-*; do
+            target=${dir#rnrm-}
+            if [ -f "$dir/rnrm" ]; then
+              cp "$dir/rnrm" "release-assets/rnrm-${target}"
+            elif [ -f "$dir/rnrm.exe" ]; then
+              cp "$dir/rnrm.exe" "release-assets/rnrm-${target}.exe"
+            fi
+          done
+          ls -la release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
